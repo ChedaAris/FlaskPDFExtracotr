@@ -28,6 +28,36 @@ class User(db.Model):
         return f'<User {self.username}>'
     
 
+class_students = db.Table('class_students',
+    db.Column('class_id', db.Integer, db.ForeignKey('class.id')),
+    db.Column('student_id', db.Integer, db.ForeignKey('student.id'))
+)
+
+class Class(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(10), nullable=False)
+    school_year = db.Column(db.String(80), nullable=False)
+
+    @staticmethod
+    def get_one(name, year):
+        stmt = db.select(Class).filter_by(name=name, school_year=year)
+        item = db.session.execute(stmt).first()
+        if item:
+            return item[0]
+        else:
+            return item
+    
+    @staticmethod
+    def insert(name, year):
+        try:
+            model = Class(name=name, school_year= year)
+            db.session.add(model)
+            db.session.commit()
+            return model
+        except:
+            db.session.rollback()
+
+
 class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
@@ -35,11 +65,26 @@ class Student(db.Model):
     birth_date = db.Column(db.String(10), nullable=False)
     image_path = db.Column(db.String(120), unique=True, nullable=False)
 
+    # Relazione many-to-many tra Student e Class
+    classes = db.relationship('Class', secondary=class_students, backref=db.backref('students', lazy='dynamic'))
+
+    def in_class(self, _class):
+        return any(c.id == _class.id for c in self.classes)
+
+    def add_class(self, _class):
+        self.classes.append(_class)
+        db.session.commit()
+
     @staticmethod
     def insert(name, lastname, birth_date, image_path):
-        model = Student(name=name, lastname=lastname, birth_date=birth_date, image_path=image_path)
-        db.session.add(model)
-        db.session.commit()
+        try:
+            model = Student(name=name, lastname=lastname, birth_date=birth_date, image_path=image_path)
+            db.session.add(model)
+            db.session.commit()
+            return model
+        except:
+            db.session.rollback()
+
     
     @staticmethod
     def get_all():
@@ -48,10 +93,16 @@ class Student(db.Model):
         return students
     
     @staticmethod
-    def get_one(id):
-        stmt = db.select(Student).filter_by(id=id)
+    def get_one(name, lastname, birth_date):
+        stmt = db.select(Student).filter_by(name=name, lastname=lastname, birth_date=birth_date)
         student = db.session.execute(stmt).first()
-        return student
+        if student:
+            return student[0]
+        else:
+            return student
+    
+
+
     
     def to_dict(self):
         return {
@@ -61,3 +112,4 @@ class Student(db.Model):
             'birth_date': self.birth_date,
             #'image_path': self.image_path
         }
+    

@@ -17,6 +17,7 @@ app.register_blueprint(bp_api, url_prefix="/api")
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("SQL_URI")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
 
 db.init_app(app)
 migrate = Migrate(app, db)
