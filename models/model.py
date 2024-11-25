@@ -2,11 +2,19 @@ from models.conn import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 
+class_users = db.Table('class_users',
+    db.Column('class_id', db.Integer, db.ForeignKey('class.id')),
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id'))
+)
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))  # Campo per la password criptata
+    api_key = db.Column(db.String(32))
+
+    classes = db.relationship('Class', secondary=class_users, backref=db.backref('users', lazy='dynamic'))
 
     def set_password(self, password):
         """Imposta la password criptata."""
@@ -15,6 +23,45 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         """Verifica se la password è corretta."""
         return check_password_hash(self.password_hash, password)
+    
+    def set_api_key(self, api_key):
+        self.api_key = api_key
+        db.session.commit()
+
+    def add_class(self, _class):
+        self.classes.append(_class)
+        db.session.commit()
+
+    def has_class(self, _class):
+        return any(c.id == _class.id for c in self.classes)
+    
+    def has_student(self, student):
+        for _class in student.classes:
+            if self.has_class(_class):
+                return True
+            
+        return False
+    
+    def get_classes_data(self):
+        data = {}
+        for _class in self.classes:
+            if not _class.school_year in data:
+                data[_class.school_year] = []
+
+            data[_class.school_year].append(_class.name)
+        return data
+
+    
+    @staticmethod
+    def authenticate_key(api_key):
+        """ Ritorna l'utente con la data chiave."""
+        stmt = db.select(User).filter_by(api_key=api_key)
+        user = db.session.execute(stmt).first()
+        if user:
+            return user[0]
+        else:
+            return user
+    
     
     @staticmethod
     def insert(username, email, password):
@@ -47,10 +94,14 @@ class_students = db.Table('class_students',
     db.Column('student_id', db.Integer, db.ForeignKey('student.id'))
 )
 
+
 class Class(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(10), nullable=False)
     school_year = db.Column(db.String(80), nullable=False)
+
+    # Relazione many-to-many tra Student e Class
+    students = db.relationship('Student', secondary=class_students, back_populates='classes')
 
     @staticmethod
     def get_one(name, year):
@@ -80,7 +131,7 @@ class Student(db.Model):
     image_path = db.Column(db.String(120), unique=True, nullable=False)
 
     # Relazione many-to-many tra Student e Class
-    classes = db.relationship('Class', secondary=class_students, backref=db.backref('students', lazy='dynamic'))
+    classes = db.relationship('Class', secondary=class_students, back_populates='students')
 
     def in_class(self, _class):
         return any(c.id == _class.id for c in self.classes)
@@ -105,6 +156,7 @@ class Student(db.Model):
         stmt = db.select(Student)
         students = db.session.execute(stmt).scalars().all()
         return students
+    
     
     @staticmethod
     def get_one(name, lastname, birth_date):

@@ -1,9 +1,9 @@
 from flask import Flask
 from flask_migrate import Migrate
 from models.conn import db
-from routes.base import base as bp_base
 from routes.api import api as bp_api
 from routes.auth import auth as bp_auth
+from routes.base import base as bp_base
 from dotenv import load_dotenv
 from flask_login import LoginManager
 

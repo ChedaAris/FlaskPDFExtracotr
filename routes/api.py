@@ -1,4 +1,4 @@
-from flask import Blueprint, request, flash, request, send_file
+from flask import Blueprint, request, request, send_file
 import os
 import fitz
 import pymupdf
@@ -7,7 +7,7 @@ import re
 import uuid
 from PIL import Image
 from werkzeug.utils import secure_filename
-from models.model import Student, Class
+from models.model import Student, Class, User
 from flask import jsonify
 
 api = Blueprint('api', __name__)
@@ -21,36 +21,66 @@ pil_images = []
 school_year = ""
 school_class = ""
 
+
+"""
 @api.route("/", methods=["GET"])
 def get_all():
+
+    user = User.authenticate_key(request.headers.get('X-API-Key'));
+    if not user:
+        return {"error" : "Invalid key"}
+
     students = Student.get_all()
     students_list = [student.to_dict() for student in students]  # Convert each student to a dict
     return jsonify(students_list)
+"""
 
 @api.route("/<int:id>", methods=["GET"])
 def get_one(id):
+    user = User.authenticate_key(request.headers.get('X-API-Key'));
+    if not user:
+        return {"error" : "Invalid key"}
+
     student = Student.get_one_by_id(id);
     if not student:
         return "Student not found", 404
+    
+    if not user.has_student(student):
+        return "Can not see student data", 403
     
     return jsonify(student.to_dict())
 
 @api.route("/image/<int:id>", methods=["GET"])
 def get_image(id):
+    user = User.authenticate_key(request.headers.get('X-API-Key'));
+    if not user:
+        return {"error" : "Invalid key"}
+
     student = Student.get_one_by_id(id);
     if not student:
         return "Student not found", 404
+    
+    if not user.has_student(student):
+        return "Can not see student data", 403
 
     return send_file(student.image_path, mimetype="image/jpeg")
 
 
-@api.route("/class/<name>/<year>", methods=["GET"])
-def get_students_from_class(name, year):
+@api.route("/class/<year>/<name>", methods=["GET"])
+def get_students_from_class(year, name):
+
+    user = User.authenticate_key(request.headers.get('X-API-Key'));
+    if not user:
+        return {"error" : "Invalid key"}
+
     _class = Class.get_one(name=name, year=year)
     if not _class:
         return "Class not found", 404
+    
+    if not user.has_class(_class):
+        return "Can not see class", 403
 
-    students = Student.get_all()
+    students = _class.students
 
     
     students_list = [student.to_dict() for student in students]  # Convert each student to a dict
@@ -58,22 +88,24 @@ def get_students_from_class(name, year):
 
 
 
-@api.route("/", methods=["POST"])
+@api.route("/sendfile", methods=["POST"])
 def extract_data_from_pdf():
 
+    user = User.authenticate_key(request.headers.get('X-API-Key'));
+    if not user:
+        return {"error" : "Invalid key"}
+    
     reset_vars()
     # check if the post request has the file part
     if 'file' not in request.files:
-        flash('No file part')
-        return "no file in request"
+        return "no file in request", 400
 
     file = request.files['file']
     
     # If the user does not select a file, the browser submits an
     # empty file without a filename.
     if file.filename == '':
-        flash('No selected file')
-        return "no selected file"
+        return "no selected file", 400
 
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
@@ -84,6 +116,10 @@ def extract_data_from_pdf():
         current_class = Class.get_one(school_class, school_year)
         if not current_class:
             current_class = Class.insert(school_class, school_year)
+
+        # Since he sended the pdf file, now he has access to the data of the class.
+        if not user.has_class(current_class):
+            user.add_class(current_class)
 
         for i in range(len(names)):
             student = Student.get_one(name=names[i], lastname=lastnames[i], birth_date=birth_dates[i])

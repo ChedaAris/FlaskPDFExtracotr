@@ -1,6 +1,8 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, make_response
 from flask_login import login_user, logout_user, current_user, login_required
 from functools import wraps
+
+import uuid
 
 from models.model import User
 
@@ -64,12 +66,19 @@ def login_post():
 
     # if the above check passes, then we know the user has the right credentials
     login_user(user, remember=remember)
-    return redirect(url_for('base.home'))
+
+    # sets api key in cookies
+    user.set_api_key(str(uuid.uuid4()))
+    res = make_response(redirect(url_for('base.home')))
+    res.set_cookie("key", user.api_key, secure=True)
+
+    return res
 	
 
 @auth.route('/logout')
 @login_required
 def logout():
+    current_user.set_api_key("")
     logout_user()
     return redirect(url_for('auth.login'))
 

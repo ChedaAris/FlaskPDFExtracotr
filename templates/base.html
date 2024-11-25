@@ -1,16 +1,144 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}PDF extractor{% endblock %}</title>
 </head>
+
+
+<!-- Layout e stile sono stati fatti con ChatGPT-->
+<style>
+    /* Ensure the sidebar takes up the full height of the screen */
+    .sidebar {
+        height: 100vh;
+        padding: 0 10px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        padding-top: 20px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Style the links with a more appealing design */
+    .sidebar .nav-link {
+        width: 100%;
+        font-size: 18px;
+        color: #333;
+        padding: 12px 40px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    /* Hover effect for sidebar links */
+    .sidebar .nav-link:hover {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .sidebar .nav {
+        flex-grow: 1;
+        /* Pushes the last link down */
+    }
+
+    /* Style for the bottom link */
+    .sidebar .nav-item:last-child {
+        margin-top: auto;
+        /* Ensures it is at the bottom */
+    }
+
+    /* Main content area adjustment */
+    .main-content {
+        margin-left: 250px;
+        /* Create space for sidebar */
+        padding: 20px;
+    }
+
+    /* Add some spacing at the top of the page for fixed navbar */
+    body {
+        padding-top: 20px;
+    }
+
+    /* Ensure the sidebar does not overlap the content */
+    @media (max-width: 768px) {
+        .sidebar {
+            position: relative;
+            height: auto;
+            width: 100%;
+            padding: 10px;
+        }
+
+        .main-content {
+            margin-left: 0;
+        }
+    }
+
+
+    /* Further indent nested sub-menu items */
+    .collapse .nav{
+        padding-left: 20px;
+        /* Additional indentation for deeper nested items */
+    }
+</style>
+
 <body>
-    {% block content %}
-    {% endblock %}
+    <!-- Sidebar -->
+    <nav class="sidebar bg-light">
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link active" href="/home">Home</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/sendfile">Add Students</a>
+            </li>
+            <!-- Classes Link with Tree Structure -->
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="collapse" href="#classesMenu" role="button" aria-expanded="false"
+                    aria-controls="classesMenu">Classes</a>
+                <div class="collapse" id="classesMenu">
+                    <ul class="nav flex-column ml-3">
+                        <!-- Years -->
+                        {% for year, classes in classes_data.items() %}
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="collapse" href="#{{year}}" role="button"
+                                aria-expanded="false" aria-controls="{{year}}">{{year}}</a>
+                            <div class="collapse" id="{{year}}">
+                                <ul class="nav flex-column ml-3">
+                                    {% for class in classes %}
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="/class/{{year}}/{{class}}">{{class}}</a>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/auth/logout">Logout</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        {% block content %}
+        {% endblock %}
+    </div>
+
 </body>
+
 </html>

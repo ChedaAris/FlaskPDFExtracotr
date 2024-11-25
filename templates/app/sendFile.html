@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Home Page{% endblock %}
+
+{% block content %}
+<div>
+
+    <h2>Upload file</h2>
+    <p>Upload a PDF file from the gagi service.</p>
+    <form id="form">
+        <input type="file" name="file" id="file" />
+        <br><br>
+        <button id="btnSend">Send</button>
+    </form>
+
+    <div class="mt-2 alert" id="res-alert"></div>
+
+    <script>
+        document.getElementById("btnSend").addEventListener("click", () => {
+            sendFile();
+        })
+
+        function sendFile() {
+            event.preventDefault();
+
+            let formData = new FormData(document.getElementById("form"))
+            let responseAlert = document.getElementById("res-alert");
+            let key = getCookie("key")
+
+            let options = {
+                'method': 'post',
+                'headers': {
+                    'X-API-Key': key
+                },
+                'body': formData
+            }
+
+            const loc = window.location;
+            let url = `${loc.protocol}api/sendfile`;
+
+            fetch(url, options)
+                .then(res => {
+                    if (res.status == 200) {
+                        responseAlert.innerText = "Ok"
+                        responseAlert.classList.add("alert-success")
+                        responseAlert.classList.remove("alert-danger")
+                    }else{
+                        throw new Error()
+                    }
+
+                })
+                .catch(err => {
+                    responseAlert.innerText = "Selezionare un file e riprovare."
+                    responseAlert.classList.add("alert-danger")
+                    responseAlert.classList.remove("alert-success")
+                })
+        }
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+    </script>
+</div>
+{% endblock %}

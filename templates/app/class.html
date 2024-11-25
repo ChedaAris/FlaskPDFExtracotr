@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Home Page{% endblock %}
+
+{% block content %}
+
+<div class="container mt-5">
+    <h2 class="mb-4">Classe {{ name}} - {{ year }}</h2>
+    <table class="table table-bordered table-striped table-hover">
+        <thead class="thead-dark">
+            <tr>
+                <th>Name</th>
+                <th>Lastname</th>
+                <th>Birth Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students %}
+            <tr>
+                <td>
+                    {{ student.name }}
+                    <button id="btn" onclick="openImage(`{{ url_for('api.get_image', id=student.id) }}`)">
+                        View
+                    </button>
+                </td>
+                <td>{{ student.lastname }}</td>
+                <td>{{ student.birth_date }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        function openImage(urlImg) {
+
+            //let key = getCookie("key")
+
+            let options = {
+                'method': 'get',
+                'headers': {
+                    'X-API-Key': key
+                },
+            }
+
+            fetch(urlImg, options)
+            .then(res => {
+                console.log(res)
+            })
+            .catch(err => {
+                console.log(err)
+            })
+        }
+    </script>
+</div>
+
+{% endblock %}
