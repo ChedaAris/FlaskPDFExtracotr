@@ -4,6 +4,7 @@ import fitz
 import pymupdf
 import io
 import re
+import uuid
 from PIL import Image
 from werkzeug.utils import secure_filename
 from models.model import Student, Class
@@ -28,19 +29,33 @@ def get_all():
 
 @api.route("/<int:id>", methods=["GET"])
 def get_one(id):
-    student = Student.get_one(id);
+    student = Student.get_one_by_id(id);
     if not student:
-        return "Student not found"
+        return "Student not found", 404
     
-    return jsonify(student[0].to_dict())
+    return jsonify(student.to_dict())
 
 @api.route("/image/<int:id>", methods=["GET"])
 def get_image(id):
-    student = Student.get_one(id);
+    student = Student.get_one_by_id(id);
     if not student:
-        return "Student not found"
+        return "Student not found", 404
 
-    return send_file(student[0].image_path, mimetype="image/jpeg")
+    return send_file(student.image_path, mimetype="image/jpeg")
+
+
+@api.route("/class/<name>/<year>", methods=["GET"])
+def get_students_from_class(name, year):
+    _class = Class.get_one(name=name, year=year)
+    if not _class:
+        return "Class not found", 404
+
+    students = Student.get_all()
+
+    
+    students_list = [student.to_dict() for student in students]  # Convert each student to a dict
+    return jsonify(students_list)
+
 
 
 @api.route("/", methods=["POST"])
@@ -109,7 +124,7 @@ def save_pictures(pdf_filename):
             pil_image = Image.open(io.BytesIO(image_bytes))
 
             # Save the image to disk and the student to the DB
-            image_path = f"{os.getenv('IMAGES_STORAGE_FOLDER')}\\image_{lastnames[image_index]}_{names[image_index]}.{image_ext}"
+            image_path = f"{os.getenv('IMAGES_STORAGE_FOLDER')}\\img_{uuid.uuid4()}.{image_ext}"
             images.append(image_path)
             pil_images.append(pil_image)
 
@@ -175,3 +190,7 @@ def reset_vars():
 
     school_year = ""
     school_class = ""
+
+    
+    
+    

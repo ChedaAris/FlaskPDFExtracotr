@@ -1,7 +1,8 @@
 from models.conn import db
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import UserMixin
 
-class User(db.Model):
+class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -16,12 +17,25 @@ class User(db.Model):
         return check_password_hash(self.password_hash, password)
     
     @staticmethod
-    def insert_user():
-        return ""
+    def insert(username, email, password):
+        try:
+            model = User(username=username, email=email)
+            model.set_password(password=password)
+            db.session.add(model)
+            db.session.commit()
+            return model
+        except:
+            db.session.rollback()
     
     @staticmethod
-    def get_from_id(id):
-        return ""
+    def get_from_email(email):
+        """Ritorna l'utente con la mail corrispondente."""
+        stmt = db.select(User).filter_by(email=email)
+        user = db.session.execute(stmt).first()
+        if user:
+            return user[0]
+        else:
+            return user
     
 
     def __repr__(self):
@@ -101,7 +115,15 @@ class Student(db.Model):
         else:
             return student
     
-
+    
+    @staticmethod
+    def get_one_by_id(id):
+        stmt = db.select(Student).filter_by(id=id)
+        student = db.session.execute(stmt).first()
+        if student:
+            return student[0]
+        else:
+            return student
 
     
     def to_dict(self):
